@@ -1,0 +1,43 @@
+# ────────────────── Python ──────────────────
+__pycache__/
+*.py[cod]
+
+# ────────────────── Entorno virtual ─────────
+venv/
+
+# ────────────────── Variables sensibles ────
+.env
+*.env
+
+# ────────────────── Bases de datos locales ─
+*.sqlite3
+*.db
+
+# ────────────────── Logs y cachés ───────────
+*.log
+.coverage
+htmlcov/
+.mypy_cache/
+pytest_cache/
+.cache/
+
+# ────────────────── Build / Dist ────────────
+build/
+dist/
+*.egg-info/
+
+# ────────────────── Alembic ─────────────────
+migrations/versions/
+
+# ────────────────── Documentos mermaid/pdfs ─
+diagrams/*.png
+diagrams/*.pdf
+
+# ────────────────── Configuración de IDEs ──
+.idea/
+.vscode/
+*.swp
+
+# ────────────────── Artefactos OS ───────────
+.DS_Store
+Thumbs.db
