@@ -29,10 +29,6 @@ dist/
 # ────────────────── Alembic ─────────────────
 migrations/versions/
 
-# ────────────────── Documentos mermaid/pdfs ─
-diagrams/*.png
-diagrams/*.pdf
-
 # ────────────────── Configuración de IDEs ──
 .idea/
 .vscode/
