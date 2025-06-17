@@ -22,19 +22,20 @@ class LocationRepository:
         statement = select(Location)
         result = await self.session.execute(statement)
         return result.scalars().all()
-
-    async def read_by_id(self, location_id: int) -> Optional[Location]:
-        statement = select(Location).where(Location.id == location_id)
-        result = await self.session.execute(statement)
-        return result.scalar_one_or_none()
     
     async def read_by_code(self, code: str) -> Optional[Location]:
         statement = select(Location).where(Location.code == code)
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
+    
+    async def read_by_codes(self, codes: set[str]) -> List[Location]:
+        stmt = select(Location).where(Location.code.in_(codes))
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
 
-    async def update(self, location_id: int, location_update: Location) -> Optional[Location]:
-        location = await self.read_by_id(location_id)
+
+    async def update(self, location_code: str, location_update: Location) -> Optional[Location]:
+        location = await self.read_by_code(location_code)
         if not location:
             raise HTTPException(status_code=404, detail="Location not found")
         for key, value in location_update.dict(exclude_unset=True).items():
@@ -43,8 +44,8 @@ class LocationRepository:
         await self.session.refresh(location)
         return location
 
-    async def delete(self, location_id: int) -> Location:
-        location = await self.read_by_id(location_id)
+    async def delete(self, location_code: str) -> Location:
+        location = await self(location_code)
         if not location:
             raise HTTPException(status_code=404, detail="Location not found")
         await self.session.delete(location)

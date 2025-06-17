@@ -11,8 +11,8 @@ class WineRepository:
     async def read_by_id(self, id: int) -> Optional[Wine]:
         statement = (
             select(Wine)
-            .where(Wine.is_available == True)
             .where(Wine.id == id)
+            .where(Wine.is_available == True)
         )
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
@@ -33,6 +33,14 @@ class WineRepository:
         statement = select(Wine).where(Wine.is_available == True)
         result = await self.session.execute(statement)
         return result.scalars().all()
+    
+    async def read(self, user_id: Optional[int] = None) -> List[Wine]:
+        stmt = select(Wine).where(Wine.is_available == True)
+        if user_id is not None:
+            stmt = stmt.where(Wine.user_id == user_id)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
+
 
     async def create(self, wine: Wine) -> Wine:
         try:
@@ -43,7 +51,7 @@ class WineRepository:
         except Exception:
             await self.session.rollback()
             raise HTTPException(status_code=400, detail="Error creating wine")
-        
+
     async def delete(self, wine: Wine) -> Wine:
         wine.is_available = False
         self.session.add(wine)

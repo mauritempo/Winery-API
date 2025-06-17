@@ -10,20 +10,16 @@ class UserRepository:
 
 
     async def auth(self, id: int) -> Optional[User]:
-        statement = select(User).where(User.is_active == True).where(User.id == id)
+        statement = select(User).where(User.is_active == True).where(User.username == id)
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
 
     async def create(self, user: User) -> User:
-        try:
-            self.session.add(user)
-            await self.session.commit()
-            await self.session.refresh(user)
-            return user
-        except Exception:
-            await self.session.rollback()
-            raise HTTPException(status_code=400, detail="Error creating user")
-
+        self.session.add(user)
+        await self.session.commit()
+        await self.session.refresh(user)
+        return user
+        
     async def read(self) -> List[User]:
         statement = select(User).where(User.is_active == True)
         result = await self.session.execute(statement)
