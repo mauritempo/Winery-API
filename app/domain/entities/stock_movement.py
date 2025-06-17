@@ -11,12 +11,12 @@ class StockMovement(SQLModel, table=True):
     
     id: Optional[int] = Field(default=None, primary_key=True)
     delta: int = Field(nullable=False)       
-    timestamp: datetime
+    timestamp: datetime = Field(default_factory=datetime.now)
     comment: Optional[str] = None             
    
     wine_id: int = Field(foreign_key="wine.id")
     user_id: Optional[int] = Field(foreign_key="user.id")
-    location_id: Optional[int] = Field(foreign_key="location.id")
+    location_code: Optional[str] = Field(foreign_key="location.code")
 
     wine: Optional["Wine"] = Relationship(back_populates="stock_movements")
     user: Optional["User"] = Relationship(back_populates="stock_movements")

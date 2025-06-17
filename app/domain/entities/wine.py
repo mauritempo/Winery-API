@@ -1,8 +1,9 @@
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from sqlmodel import SQLModel, Field, Relationship
-from app.domain.entities.stock_movement import StockMovement
-from app.domain.entities.user import User
-from app.domain.entities.location import Location
+if TYPE_CHECKING:
+    from app.domain.entities.user import User
+    from app.domain.entities.location import Location
+    from app.domain.entities.stock_movement import StockMovement
 
 class Wine(SQLModel, table=True):
     __tablename__ = "wine"
@@ -16,7 +17,7 @@ class Wine(SQLModel, table=True):
     is_available: bool = Field(default=True)
 
     user_id: int = Field(foreign_key="user.id")
-    location_id: int = Field(foreign_key="location.id")
+    location_code: str = Field(foreign_key="location.code")
 
     user: Optional["User"] = Relationship(back_populates="wines")
     location: Optional["Location"] = Relationship(back_populates="wines")
