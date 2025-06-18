@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -129,6 +130,11 @@ class WineServices:
     
     async def create(self, wine_create: WineCreate) -> WineRead:
         try:
+
+            # if wine_create.year is not None:
+            #     if wine_create.year < 1900 or wine_create.year > datetime.now().year:
+            #         raise HTTPException(status_code=400, detail="Year must be between 1900 and the current year.")
+
             
             if hasattr(wine_create, "location_code") and wine_create.location_code is not None:
                 location = await self.location_services.get_by_code(wine_create.location_code)

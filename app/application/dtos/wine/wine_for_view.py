@@ -1,19 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 class WineRead(BaseModel):
-
-    name: str
-    grape: str
-    price_usd: float
-    year: int
-    stock: int
-    is_available: bool
-
-    location_description: Optional[str]
-    location_name: str 
-    owner: str  
-    stock_status: str
-    
-    class Config:
-        orm_mode = True
+    name: str = Field(..., example="Malbec Reserva")
+    grape: str = Field(..., example="Malbec")
+    price_usd: float = Field(..., example=15.5)
+    year: int = Field(..., example=2021)
+    stock: int = Field(..., example=30)
+    is_available: bool = Field(..., example=True)
+    location_description: Optional[str] = Field(None, example="Estante superior zona A")
+    location_name: str = Field(..., example="A12")
+    owner: str = Field(..., example="juanperez")
+    stock_status: str = Field(..., example="Disponible")
