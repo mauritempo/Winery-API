@@ -3,7 +3,7 @@
 ---  
 ### Introduction:  
 ###### Here is a Mermaid Entities Diagram to understand the domain of the API  
-![GitHub Logo](./assets/mermaid-erd-wine.png)  
+![GitHub Logo](./assets/mermaid-der-WineApi.png)  
 
 ---  
 #### Entities behaviors to be considered:  
@@ -39,4 +39,4 @@ venv\Scripts\activate for run Virtual env.
 > #### The system is ready to sync with external wine catalog APIs (like Vivino or Wine-Searcher) to auto-complete wine metadata, scores, and price indexing.  
 
 
-![GitHub Logo](./assets/mermaid-sd-wine.png)  
+![GitHub Logo](./assets/mermaid-sd-WineApi.png)  
