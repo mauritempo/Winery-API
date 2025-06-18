@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from fastapi.responses import JSONResponse
 
+from app.application.dtos.stock_movement.stock_for_update import StockUpdate
+from app.application.dtos.wine.wine_for_update_stock import WineStockUpdate
 from app.application.dtos.wine.wine_paginated import PaginatedWines
 from app.persistence.configuration.database import get_db
 from app.application.services.wine_services import WineServices
@@ -29,19 +31,24 @@ class WineRouter:
 
 
     @router.get("/", response_model=List[WineRead])
-
     async def list_wines(
         service: WineServices = Depends(get_wine_service),
         current_user: UserSession = Depends(current_user)
         ):
         return await service.list_wines(current_user)
+    
+    @router.get("/public", response_model=list[WineRead], status_code=status.HTTP_200_OK)
+    async def list_public_wines(service: WineServices = Depends(get_wine_service)):
+        return await service.list_public_wines()
+
 
     @router.get("/{wine_id}", response_model=WineRead)
-    async def get_wine(wine_id: int, service: WineServices = Depends(get_wine_service), ):
-            wine = await service.get_by_id(wine_id)
+    async def get_wine(wine_id: int, service: WineServices = Depends(get_wine_service),current_user: UserSession = Depends(current_user) ):
+            wine = await service.get_by_id(wine_id, current_user)
             if not wine:
                 raise HTTPException(status_code=404, detail="Wine not found")
             return wine
+    
 
     @router.post("/", response_model=WineRead, status_code=status.HTTP_201_CREATED)
     async def create_wine(wine: WineCreate,service: WineServices = Depends(get_wine_service)):
@@ -52,7 +59,15 @@ class WineRouter:
         return await service.update(wine_id, wine_update,current_user)
 
     @router.delete("/{wine_id}", status_code=status.HTTP_200_OK)
-    async def delete_wine(wine_id: int, service: WineServices = Depends(get_wine_service)) -> JSONResponse:
-        return await service.delete(wine_id)
+    async def delete_wine(wine_id: int, service: WineServices = Depends(get_wine_service), current_user: UserSession = Depends(current_user)) -> JSONResponse:
+        return await service.delete(wine_id, current_user)
     
+    @router.put("/{wine_id}/stock", response_model=WineStockUpdate, status_code=status.HTTP_200_OK)
+    async def set_stock(
+        wine_id: int,
+        stock_update: StockUpdate,
+        service: WineServices = Depends(get_wine_service),
+        current_user: UserSession = Depends(current_user)
+    ):
+        return await service.set_stock(wine_id, stock_update,current_user)
 

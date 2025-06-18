@@ -4,7 +4,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from fastapi.responses import JSONResponse
 
+from app.application.dtos.stock_movement.stock_for_read import StockMovementRead
+from app.application.dtos.stock_movement.stock_for_update import StockUpdate
 from app.application.dtos.user.user_credentials import UserSession
+from app.application.dtos.wine.wine_for_update_stock import WineStockUpdate
 from app.application.dtos.wine.wine_paginated import PaginatedWines
 from app.domain.entities.wine import Wine
 from app.persistence.repository.wine_repository import WineRepository
@@ -63,6 +66,13 @@ class WineServices:
             return [await self._transform_wine_to_read(wine) for wine in wines]
         except Exception as e:
             raise WineServiceError(f"Error listing wine: {str(e)}")
+    async def list_public_wines(self)-> List[WineRead]:
+        
+            wines = await self.repo.read() 
+            if not wines:
+                raise WineServiceError(f"Error listing wine")         
+            return [await self._transform_wine_to_read(wine) for wine in wines]
+        
     
     async def list_paginated_wines(self, current_user: UserSession, offset: int, limit: int) -> PaginatedWines:
         if current_user.role != "admin":
@@ -75,8 +85,10 @@ class WineServices:
         return PaginatedWines(total=total, offset=offset, limit=limit, items=items)
 
 
-    async def get_by_id(self, wine_id: int) -> Optional[WineRead]:
+    async def get_by_id(self, wine_id: int, current_user: UserSession ) -> Optional[WineRead]:
         try:
+            if current_user.role != "admin":
+                raise HTTPException(status_code=403,detail="you are not authorized to get a wine")
             wine = await self.repo.read_by_id(wine_id)
             print(wine)
             if not wine:
@@ -91,34 +103,23 @@ class WineServices:
         try:
             if current_user.role != "admin":
                 raise HTTPException(status_code=403,detail="you are not authorized to change wines")
-            wine = await self.repo.read_by_id(wine_id)
+            wine = await self.repo.read_by_id_soft_delete(wine_id)
             if not wine:
                 raise HTTPException(status_code=404, detail="Wine not found")
+            
+            update_data = wine_update.model_dump(exclude_unset=True)
 
-            if hasattr(wine_update, "location_code") and wine_update.location_code is not None:
+            if wine_update.location_code is not None:
                 location = await self.location_services.get_by_code(wine_update.location_code)
                 if not location:
                     raise HTTPException(status_code=400, detail="Location not found for wine")
-
-            if wine_update.stock is not None and wine_update.stock != wine.stock:
-                if wine_update.stock < 0:
-                    raise HTTPException(status_code=400, detail="stock can`t be negative")
-                    
-                delta = wine_update.stock - wine.stock
-                stock_movement = StockCreate(
-                    delta=delta,
-                    wine_id=wine.id,
-                    location_code=wine.location_code,
-                    user_id=getattr(wine, "user_id", None)
-                )
-                await self.stock_movement_service.create(stock_movement)
 
             for key, value in wine_update.model_dump(exclude_unset=True).items():
                 setattr(wine, key, value)
             
             updated_wine = await self.repo.update(wine_id, wine)
            
-            wine = await self._transform_wine_to_read(wine)
+            wine = await self._transform_wine_to_read(updated_wine)
             return WineRead.model_validate(wine)
             
         except HTTPException:
@@ -167,21 +168,18 @@ class WineServices:
             raise HTTPException(status_code=500, detail=f"Error creating wine: {str(e)}")
 
 
-    async def delete(self, wine_id: int) -> JSONResponse:
+    async def delete(self, wine_id: int, current_user: UserSession) -> JSONResponse:
         try:
-            wine = await self.repo.read_by_id(wine_id)
+            if current_user.role != "admin":
+                raise HTTPException(status_code=403, detail="Only admin users can delete wines")
 
+            wine = await self.repo.read_by_id(wine_id)
             if not wine:
                 raise HTTPException(status_code=404, detail="Wine not found")
             
             if not wine.is_available:
                 raise HTTPException(status_code=400, detail="Wine is already deleted")
-            
-           
-
-
             if wine.stock > 0:
-                print("codigo importante", wine.stock, wine.id, wine.location_code)
                 stock_movement = StockCreate(
                     delta=wine.stock,
                     wine_id=wine.id,
@@ -189,16 +187,21 @@ class WineServices:
                     user_id=getattr(wine, "user_id", None)
                 )
                 await self.stock_movement_service.create(stock_movement)
-
             await self.repo.delete(wine)
 
-            
-
-
             return JSONResponse(content={"message": f"Wine '{wine.name}' was successfully deleted."},status_code=200)
-            
         except HTTPException:
             raise
         except Exception as e:
-            
             raise HTTPException(status_code=500, detail=f"Error deleting wine: {str(e)}")
+
+    async def set_stock(self, wine_id: int, stock_update: StockUpdate,current_user: UserSession) -> WineStockUpdate:
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Only admin users can update stock")
+        if stock_update.stock < 0:
+            raise HTTPException(status_code=400, detail="Stock can't be negative")       
+        wine = await self.repo.set_stock(wine_id, stock_update.stock)
+        if not wine:
+            raise HTTPException(status_code=404, detail="Wine not found")
+        
+        return WineStockUpdate(stock=wine.stock)

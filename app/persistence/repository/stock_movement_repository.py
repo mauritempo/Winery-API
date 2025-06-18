@@ -3,20 +3,18 @@ from fastapi import HTTPException
 from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.entities.stock_movement import StockMovement
+from app.domain.entities.wine import Wine
 
 class StockMovementRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
     async def create(self, movement: StockMovement) -> StockMovement:
-        try:
             self.session.add(movement)
             await self.session.commit()
             await self.session.refresh(movement)
             return movement
-        except Exception:
-            await self.session.rollback()
-            raise HTTPException(status_code=400, detail="Error creating stock movement")
+            
 
     async def read(self) -> List[StockMovement]:
         statement = select(StockMovement)
