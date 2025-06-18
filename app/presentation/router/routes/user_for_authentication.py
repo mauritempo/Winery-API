@@ -12,7 +12,7 @@ class UserForAuthenticationRouter:
 
     @router.post("/login", status_code=200 ,response_model=Token)
     async def auth(
-        credentials: Annotated[OAuth2PasswordRequestForm, Depends()],
+        credentials:Annotated[OAuth2PasswordRequestForm, Depends()],
        session: Session = Depends(get_db),
     ):
         service = UserService(session)

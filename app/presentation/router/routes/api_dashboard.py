@@ -6,7 +6,7 @@ from .user_routes import UserRouter
 from .location_routes import LocationRouter 
 from .stock_movement import StockMovementRouter
 from .user_for_authentication import UserForAuthenticationRouter
-from .wine_routes import router as WineRouter
+from .wine_routes import WineRouter
 
 class DashboardRouter:
     
@@ -22,7 +22,7 @@ class DashboardRouter:
 
     router.include_router(UserForAuthenticationRouter.router)
     router.include_router(UserRouter.router)
-    router.include_router(WineRouter)
+    router.include_router(WineRouter.router)
     # router.include_router(LocationRouter.router)
     # router.include_router(StockMovementRouter.router)
 

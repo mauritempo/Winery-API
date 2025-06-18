@@ -47,7 +47,7 @@ class UserRouter:
         ):
         return await service.create_user(user)
 
-    @router.patch("/{user_id}", response_model=UserSession)
+    @router.put("/{user_id}", response_model=UserSession)
     async def update_user(
         user_id: int,
         user_update: UserForUpdate,
