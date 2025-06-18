@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel,Field
+from pydantic import BaseModel
 from app.domain.enum.user_role import UserRole
 
 class UserRead(BaseModel):
