@@ -63,11 +63,15 @@ class UserService:
             if not user:
                 raise HTTPException(status_code=404,detail="User not found")
 
-            for key, value in user_update.model_dump(exclude_unset=True).items():
+            for key, value in user_update.model_dump().items():
                 if key == "password":
                     setattr(user, "hashed_password", self.pwd_context.hash(value))
                 else:
                     setattr(user, key, value)
+
+            if not user_update.username or not user_update.last_name:
+                raise HTTPException(status_code=400, detail="All fields are required")
+
             
             updated_user = await self.repo.update(user)
             return UserRead.model_validate(updated_user.model_dump())
@@ -78,19 +82,18 @@ class UserService:
             raise HTTPException(status_code=500, detail=f"Error updating user: {str(e)}")
 
     async def get_user_by_id(self, user_id: int, current_user: UserSession) -> UserRead:
-        print("entrando al servicio")
         try:
             if current_user.role != "admin" and current_user.id != user_id:
                 raise HTTPException(
                     status_code=403, 
-                    detail="Acces denied, you only can see your profile"
+                    detail="You are not authorized to access this user's data"
                 )
             user = await self.repo.read_by_id(user_id)
 
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
-            
-            return UserRead.model_validate(user.model_dump())
+                raise HTTPException(status_code=404, detail="User not found") 
+                     
+            return User(id=user.id,username=user.username,first_name=user.first_name,last_name=user.last_name,role=user.role,is_active=user.is_active)
         
         except HTTPException:
             raise

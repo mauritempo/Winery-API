@@ -2,10 +2,13 @@ from sqlalchemy.exc import IntegrityError
 from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
+from fastapi.responses import JSONResponse
 
 from app.application.dtos.user.user_credentials import UserSession
+from app.application.dtos.wine.wine_paginated import PaginatedWines
 from app.domain.entities.wine import Wine
 from app.persistence.repository.wine_repository import WineRepository
+from app.persistence.repository.stock_movement_repository import StockMovementRepository
 from app.application.services.location_services import LocationServices
 from app.application.services.stock_movement import StockMovementService
 from app.application.dtos.stock_movement.stock_for_create import StockCreate
@@ -16,6 +19,7 @@ from app.application.dtos.wine.wine_for_create import WineCreate
 from app.application.dtos.location.location_for_create import LocationForCreate
 
 
+
 class WineNotFoundError(Exception):
     pass
 
@@ -23,14 +27,17 @@ class WineServiceError(Exception):
     pass
 
 class WineServices:
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, db: AsyncSession):
         self.repo = WineRepository(session)
         self.location_services = LocationServices(session)
         self.stock_movement_service = StockMovementService(session)
+        self.stock_movement_repo = StockMovementRepository(session)
+        self.db = db
 
 
-    async def _transform_wine_to_read(self, wine: Wine) -> WineRead:
+    async def _transform_wine_to_read(self, wine: Wine,) -> WineRead:
         location = await self.location_services.get_by_code(wine.location_code)
+        await self.db.refresh(wine, attribute_names=["location", "user"])
         return WineRead(
             name=wine.name,
             year=wine.year,
@@ -38,9 +45,9 @@ class WineServices:
             price_usd=wine.price_usd,
             stock=wine.stock,
             is_available=wine.is_available,
-            location_code=wine.location_code,
+            location_name=wine.location.description,
             location_description=location.description if location else None,
-            user_id=wine.user_id,
+            owner = (f"{wine.user.first_name} {wine.user.last_name}"if wine.user else "Unknown"),
             stock_status=(
                 "Off stock" if wine.stock == 0 else
                 "Low Stock" if wine.stock < 5 else
@@ -51,15 +58,27 @@ class WineServices:
     async def list_wines(self, current_user:UserSession) -> List[WineRead]:
         try:
             if current_user.role != "admin":
-                raise HTTPException(status_code=403,detail="No tienes permisos para ver todos los usuarios")
+                raise HTTPException(status_code=403,detail="you are not authorized to see all wines")
             wines = await self.repo.read(current_user.id)          
             return [await self._transform_wine_to_read(wine) for wine in wines]
         except Exception as e:
             raise WineServiceError(f"Error listing wine: {str(e)}")
+    
+    async def list_paginated_wines(self, current_user: UserSession, offset: int, limit: int) -> PaginatedWines:
+        if current_user.role != "admin":
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        total = await self.repo.count_all(current_user.id)
+        wines = await self.repo.paginated(current_user.id, offset=offset, limit=limit)
+        items = [await self._transform_wine_to_read(wine) for wine in wines]
+
+        return PaginatedWines(total=total, offset=offset, limit=limit, items=items)
+
 
     async def get_by_id(self, wine_id: int) -> Optional[WineRead]:
         try:
             wine = await self.repo.read_by_id(wine_id)
+            print(wine)
             if not wine:
                 raise WineNotFoundError(f"Wine with ID {wine_id} not found")
             
@@ -68,16 +87,18 @@ class WineServices:
         except Exception as e:
             raise WineServiceError(f"Error retrieving wine: {str(e)}")
 
-    async def update(self, wine_id: int, wine_update: WineUpdate) -> Optional[WineRead]:
+    async def update(self, wine_id: int, wine_update: WineUpdate, current_user: UserSession) -> Optional[WineRead]:
         try:
+            if current_user.role != "admin":
+                raise HTTPException(status_code=403,detail="you are not authorized to change wines")
             wine = await self.repo.read_by_id(wine_id)
             if not wine:
-                raise HTTPException(status_code=404, detail="Vino no encontrado")
+                raise HTTPException(status_code=404, detail="Wine not found")
 
             if hasattr(wine_update, "location_code") and wine_update.location_code is not None:
                 location = await self.location_services.get_by_code(wine_update.location_code)
                 if not location:
-                    raise HTTPException(status_code=400, detail="Location no encontrada para el vino.")
+                    raise HTTPException(status_code=400, detail="Location not found for wine")
 
             if wine_update.stock is not None and wine_update.stock != wine.stock:
                 if wine_update.stock < 0:
@@ -96,6 +117,7 @@ class WineServices:
                 setattr(wine, key, value)
             
             updated_wine = await self.repo.update(wine_id, wine)
+           
             wine = await self._transform_wine_to_read(wine)
             return WineRead.model_validate(wine)
             
@@ -122,6 +144,9 @@ class WineServices:
 
             wine = Wine(**wine_create.model_dump())
             wine = await self.repo.create(wine)
+
+            if not wine:
+                raise HTTPException(status_code=400, detail="Error creating wine")
             
             if wine.stock > 0:
                 print("codigo importante", wine.stock, wine.id, wine.location_code)
@@ -140,28 +165,40 @@ class WineServices:
             raise HTTPException(status_code=400, detail="Error of integrity, possibly a duplicate entry.")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error creating wine: {str(e)}")
-        
 
 
-    async def delete(self, wine_id: int) -> bool:
+    async def delete(self, wine_id: int) -> JSONResponse:
         try:
             wine = await self.repo.read_by_id(wine_id)
+
             if not wine:
                 raise HTTPException(status_code=404, detail="Wine not found")
+            
+            if not wine.is_available:
+                raise HTTPException(status_code=400, detail="Wine is already deleted")
+            
+           
+
 
             if wine.stock > 0:
+                print("codigo importante", wine.stock, wine.id, wine.location_code)
                 stock_movement = StockCreate(
-                    delta=-wine.stock,
+                    delta=wine.stock,
                     wine_id=wine.id,
                     location_code=wine.location_code,
                     user_id=getattr(wine, "user_id", None)
                 )
                 await self.stock_movement_service.create(stock_movement)
-            
+
             await self.repo.delete(wine)
-            return True
+
+            
+
+
+            return JSONResponse(content={"message": f"Wine '{wine.name}' was successfully deleted."},status_code=200)
             
         except HTTPException:
             raise
         except Exception as e:
+            
             raise HTTPException(status_code=500, detail=f"Error deleting wine: {str(e)}")

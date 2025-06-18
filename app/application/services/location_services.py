@@ -20,26 +20,20 @@ class LocationServices:
             wines=[]
         )
 
-    async def get_by_id(self, location_id: int) -> Optional[LocationForRead]:
-        location = await self.repo.read_by_id(location_id)
+    async def get_by_id(self, location_code: int) -> Optional[LocationForRead]:
+        location = await self.repo.read_by_code(location_code)
         if not location:
             return None
-        wines = [WineRead.model_validate(wine) for wine in getattr(location, "wines", [])] if hasattr(location, "wines") else []
-        return LocationForRead(
-            code=location.code,
-            description=location.description,
-            wines=wines
-        )
+        return LocationForRead(code=location.code,description=location.description)
+    
     async def get_by_code(self, code: str) -> Optional[LocationForRead]:
         print("porno", code)
         location = await self.repo.read_by_code(code)
         print("loccc", location)
         if not location:
             return None  
-        return LocationForRead(
-            code=location.code,
-            description=location.description,
-        )
+        return LocationForRead(code=location.code,description=location.description)
+    
     
     async def get_by_codes(self, codes: set[str]) -> List[Location]:
         return await self.repo.read_by_codes(codes)
@@ -49,11 +43,9 @@ class LocationServices:
         locations = await self.repo.read()
         result = []
         for location in locations:
-            wines = [WineRead.model_validate(wine) for wine in getattr(location, "wines", [])] if hasattr(location, "wines") else []
             result.append(LocationForRead(
                 code=location.code,
                 description=location.description,
-                wines=wines
             ))
         return result
 

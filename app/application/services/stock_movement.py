@@ -13,7 +13,7 @@ class StockMovementService:
     async def create(self, movement_create: StockCreate) -> StockMovementRead:
         movement = StockMovement(**movement_create.model_dump())
         movement = await self.repo.create(movement)
-        return StockMovementRead.model_validate(movement.__dict__)
+        return StockMovementRead.model_validate(movement)
 
     async def get_by_id(self, movement_id: int) -> Optional[StockMovementRead]:
         movement = await self.repo.read_by_id(movement_id)
