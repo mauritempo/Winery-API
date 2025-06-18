@@ -29,6 +29,10 @@ class UserRepository:
         statement = select(User).where(User.is_active == True, User.id == user_id)
         result = await self.session.execute(statement)
         return result.scalar_one_or_none()
+    async def read_by_id_soft_deleted(self, user_id: int) -> Optional[User]:
+        statement = select(User).where(User.id == user_id)
+        result = await self.session.execute(statement)
+        return result.scalar_one_or_none()
 
     async def update(self, user: User) -> Optional[User]:
         try:
@@ -40,12 +44,15 @@ class UserRepository:
             await self.session.rollback()
 
     async def delete(self, user: User) -> User:
-        try:
             user.is_active = False
             self.session.add(user)
             await self.session.commit()
             await self.session.refresh(user)
             return user
-        except Exception:
-            await self.session.rollback()
-            raise HTTPException(status_code=400, detail="Error deleting user")
+        
+        
+    async def get_by_username(self, username: str) -> Optional[User]:
+        stmt = select(User).where(User.username == username)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+

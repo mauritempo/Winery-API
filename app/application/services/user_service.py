@@ -59,23 +59,25 @@ class UserService:
             if user_update.role == "admin" and current_user.role != "admin":
                 raise HTTPException(status_code=403,detail="Only admin users can update roles")
 
-            user = await self.repo.read_by_id(user_id)
+            user = await self.repo.read_by_id_soft_deleted(user_id)
+
             if not user:
                 raise HTTPException(status_code=404,detail="User not found")
+
+            if user_update.username and user_update.username != user.username:
+                existing_user = await self.repo.get_by_username(user_update.username)
+                if existing_user and existing_user.id != user.id:
+                    raise HTTPException(status_code=400, detail="This username is already taken by another user.")
 
             for key, value in user_update.model_dump().items():
                 if key == "password":
                     setattr(user, "hashed_password", self.pwd_context.hash(value))
                 else:
                     setattr(user, key, value)
-
-            if not user_update.username or not user_update.last_name:
-                raise HTTPException(status_code=400, detail="All fields are required")
-
-            
+                
             updated_user = await self.repo.update(user)
-            return UserRead.model_validate(updated_user.model_dump())
-        
+
+            return UserRead.model_validate(updated_user, from_attributes=True)
         except HTTPException:
             raise
         except Exception as e:
@@ -99,24 +101,24 @@ class UserService:
             raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error getting user: {str(e)}")
-
-    async def delete_user(self, user_id: int, current_user: UserSession) -> bool:
-
+    async def delete_user(self, user_id: int, current_user: UserSession) -> dict:
         try:
             if current_user.role != "admin":
-                raise HTTPException(status_code=403,detail="Only admin users can update roles")
+                raise HTTPException(status_code=403, detail="Only admin users can delete users")
 
             user = await self.repo.read_by_id(user_id)
             if not user:
-                raise HTTPException(status_code=404,detail="user not found")
-            
+                raise HTTPException(status_code=404, detail="User not found")
+
             await self.repo.delete(user)
-            return True
-        
-        except HTTPException as e:
-            raise e
+
+            return {"message": f"User '{user.username}' was successfully deleted."}
+
+        except HTTPException:
+            raise
         except Exception as e:
-            raise HTTPException(status_code=500,detail=f"error deleting user: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Unexpected error deleting user: {str(e)}")
+
 
     async def authenticate_user(self, username: str, password: str) -> Token:
         try:

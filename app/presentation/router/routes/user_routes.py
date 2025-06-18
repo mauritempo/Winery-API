@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import JSONResponse
 from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
@@ -58,11 +59,12 @@ class UserRouter:
         updated = await service.update_user(user_id, user_update,current_user)
         return updated
 
-    @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+    @router.delete("/{user_id}", status_code=status.HTTP_200_OK)
     async def delete_user(
         user_id: int,
         service: UserService = Depends(get_user_service),
         current_user: UserSession = Depends(current_user),  
         ):
         await service.delete_user(user_id, current_user)
+        return JSONResponse(content={"message": f"User with ID {user_id} was successfully deleted."}, status_code=200)
         
