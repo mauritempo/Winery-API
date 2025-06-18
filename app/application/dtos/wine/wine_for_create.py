@@ -4,8 +4,8 @@ from pydantic import BaseModel, Field, field_validator
 
 class WineCreate(BaseModel):
     name: str = Field(..., example="Malbec Reserva")
-    year: Optional[int] = Field(..., example="Malbec")
-    grape: Optional[str] = Field(..., example=2021)
+    year: Optional[int] = Field(..., example=2021)
+    grape: Optional[str] = Field(..., example="Malbec")
     price_usd: Optional[float] = Field(..., example=15.5)
     stock: int = Field(..., example=30)
     is_available: bool = Field(..., example=True)
