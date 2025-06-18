@@ -11,6 +11,9 @@ class WineRead(BaseModel):
     is_available: bool
 
     location_description: Optional[str]
-    location_code: str
-    user_id: int
+    location_name: str 
+    owner: str  
     stock_status: str
+    
+    class Config:
+        orm_mode = True
