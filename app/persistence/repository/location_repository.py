@@ -10,11 +10,8 @@ class LocationRepository:
 
     async def create(self, location: Location) -> Location:
             self.session.add(location)
-            print("guardadç¿", location)
             await self.session.commit()
-            print("b", location)
             await self.session.refresh(location)
-            print("a", location)
             return location
         
     async def read(self) -> List[Location]:
@@ -35,8 +32,6 @@ class LocationRepository:
 
     async def update(self, location_code: str, location_update: Location) -> Optional[Location]:
         location = await self.read_by_code(location_code)
-        if not location:
-            raise HTTPException(status_code=404, detail="Location not found")
         for key, value in location_update.dict(exclude_unset=True).items():
             setattr(location, key, value)
         await self.session.commit()
@@ -45,8 +40,6 @@ class LocationRepository:
 
     async def delete(self, location_code: str) -> Location:
         location = await self(location_code)
-        if not location:
-            raise HTTPException(status_code=404, detail="Location not found")
         await self.session.delete(location)
         await self.session.commit()
         return location
