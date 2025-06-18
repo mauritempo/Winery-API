@@ -30,8 +30,13 @@
 > #### For a complete list of endpoints and authentication methods visit:  
 > [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) for Swagger UI interactive documentation.  
 
+uvicorn app.presentation.main:app --reload for run server.
+
+venv\Scripts\activate for run Virtual env.
+
 ---  
 ### Possible integration with another API:  
 > #### The system is ready to sync with external wine catalog APIs (like Vivino or Wine-Searcher) to auto-complete wine metadata, scores, and price indexing.  
+
 
 ![GitHub Logo](./assets/mermaid-sd-wine.png)  

@@ -5,14 +5,6 @@ __pycache__/
 # ────────────────── Entorno virtual ─────────
 venv/
 
-# ────────────────── Variables sensibles ────
-.env
-*.env
-
-# ────────────────── Bases de datos locales ─
-*.sqlite3
-*.db
-
 # ────────────────── Logs y cachés ───────────
 *.log
 .coverage
