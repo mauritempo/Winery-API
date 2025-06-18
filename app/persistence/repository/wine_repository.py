@@ -1,6 +1,6 @@
 from typing import Optional, List
 from fastapi import HTTPException
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.domain.entities.wine import Wine
 
@@ -43,18 +43,32 @@ class WineRepository:
 
 
     async def create(self, wine: Wine) -> Wine:
-        try:
             self.session.add(wine)
             await self.session.commit()
             await self.session.refresh(wine)
             return wine
-        except Exception:
-            await self.session.rollback()
-            raise HTTPException(status_code=400, detail="Error creating wine")
+            
 
     async def delete(self, wine: Wine) -> Wine:
         wine.is_available = False
+        wine.stock = 0
         self.session.add(wine)
         await self.session.commit()
         await self.session.refresh(wine)
         return wine
+
+    async def count_all(self, user_id: Optional[int] = None) -> int:
+        stmt = select(func.count()).select_from(Wine).where(Wine.is_available == True)
+        if user_id:
+            stmt = stmt.where(Wine.user_id == user_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
+    
+    async def paginated(self,user_id: Optional[int] = None,offset: int = 0,limit: int = 10) -> List[Wine]:
+        stmt = select(Wine).where(Wine.is_available == True)
+        if user_id:
+            stmt = stmt.where(Wine.user_id == user_id)
+        stmt = stmt.offset(offset).limit(limit)
+
+        result = await self.session.execute(stmt)
+        return result.scalars().all()

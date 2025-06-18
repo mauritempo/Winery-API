@@ -9,15 +9,14 @@ class LocationRepository:
         self.session = session
 
     async def create(self, location: Location) -> Location:
-        try:
             self.session.add(location)
+            print("guardadç¿", location)
             await self.session.commit()
+            print("b", location)
             await self.session.refresh(location)
+            print("a", location)
             return location
-        except Exception:
-            await self.session.rollback()
-            raise HTTPException(status_code=400, detail="Error creating location")
-
+        
     async def read(self) -> List[Location]:
         statement = select(Location)
         result = await self.session.execute(statement)

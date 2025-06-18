@@ -38,7 +38,6 @@ class UserRepository:
             return user
         except Exception:
             await self.session.rollback()
-            raise HTTPException(status_code=400, detail="Error updating user")
 
     async def delete(self, user: User) -> User:
         try:

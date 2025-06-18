@@ -37,11 +37,3 @@ class StockMovementRepository:
         await self.session.commit()
         await self.session.refresh(movement)
         return movement
-
-    async def delete(self, movement_id: int) -> StockMovement:
-        movement = await self.read_by_id(movement_id)
-        if not movement:
-            raise HTTPException(status_code=404, detail="Stock movement not found")
-        await self.session.delete(movement)
-        await self.session.commit()
-        return movement
