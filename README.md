@@ -34,6 +34,9 @@ uvicorn app.presentation.main:app --reload for run server.
 
 venv\Scripts\activate for run Virtual env.
 
+for authenticate with an exist user:
+username: "test ()"
+password: "TestPass123" for all users existing
 ---  
 ### Possible integration with another API:  
 > #### The system is ready to sync with external wine catalog APIs (like Vivino or Wine-Searcher) to auto-complete wine metadata, scores, and price indexing.  
