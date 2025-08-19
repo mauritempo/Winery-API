@@ -4,7 +4,7 @@ __pycache__/
 
 # ────────────────── Entorno virtual ─────────
 venv/
-
+.env
 # ────────────────── Logs y cachés ───────────
 *.log
 .coverage
